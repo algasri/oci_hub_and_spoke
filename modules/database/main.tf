@@ -12,7 +12,7 @@ resource "oci_database_db_system" "db_system" {
   display_name        = "${var.prefix}-${var.dbcs_config.db_name}"
   
   shape              = var.dbcs_config.shape
-  subnet_id          = var.subnet_id
+  subnet_id          = var.subnet_id != null ? var.subnet_id : var.default_subnet_id
   ssh_public_keys    = [var.ssh_public_key]
   hostname           = var.dbcs_config.db_name
   data_storage_size_in_gb = var.dbcs_config.storage_size_in_gb != null ? var.dbcs_config.storage_size_in_gb : 256

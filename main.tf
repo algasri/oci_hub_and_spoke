@@ -46,9 +46,15 @@ module "hub_network" {
   compartment_id = module.compartments.compartment_ids[local.hub_vcn.compartment]
   subnets = local.hub_vcn.subnets
   
+  # This is the hub VCN
+  is_hub = true
+  is_spoke = false
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
+  
   depends_on = [module.compartments]
 }
-
 
 module "hub_security" {
   source = "./modules/security"
@@ -100,7 +106,12 @@ module "spoke_networks" {
   
   # Set up DRG attachments and route tables for hub connectivity
   hub_vcn_id = module.hub_network.vcn_id
+  hub_drg_id = module.hub_network.drg_id
   is_spoke = true
+  is_hub = false
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
   
   depends_on = [module.compartments, module.hub_network]
 }
@@ -148,8 +159,18 @@ module "spoke_databases" {
   
   compartment_id = module.compartments.compartment_ids[local.spokes_vcn[count.index].compartment]
   vcn_id = module.spoke_networks[count.index].vcn_id
-  subnet_id = module.spoke_networks[count.index].subnet_ids["db"]
+  
+  # Try to find a database subnet using different naming patterns
+  subnet_id = lookup(module.spoke_networks[count.index].subnet_ids, "db", lookup(module.spoke_networks[count.index].subnet_ids, "${local.spokes_vcn[count.index].name}-db", null))
+  
+  # Provide a default subnet in case no db subnet is found
+  default_subnet_id = values(module.spoke_networks[count.index].subnet_ids)[0]
+  
+  prefix = local.spokes_vcn[count.index].name
   dbcs_config = local.spokes_vcn[count.index].dbcs
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
   
   depends_on = [module.spoke_networks]
 }

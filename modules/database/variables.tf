@@ -15,6 +15,13 @@ variable "vcn_id" {
 variable "subnet_id" {
   description = "OCID of the subnet where the database will be deployed"
   type        = string
+  default     = null
+}
+
+variable "default_subnet_id" {
+  description = "Default subnet ID to use if subnet_id is not provided"
+  type        = string
+  default     = null
 }
 
 variable "prefix" {

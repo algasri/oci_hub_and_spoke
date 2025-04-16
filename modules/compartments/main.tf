@@ -42,7 +42,7 @@ locals {
 # Create top-level compartments
 resource "oci_identity_compartment" "top_level" {
   for_each = {
-    for comp in local.flatten_compartments : comp.name => comp
+    for idx, comp in local.flatten_compartments : comp.name => comp
     if comp.parent_name == "root"
   }
   
@@ -58,9 +58,11 @@ resource "oci_identity_compartment" "top_level" {
 
 # Create second-level compartments
 resource "oci_identity_compartment" "second_level" {
+  depends_on = [oci_identity_compartment.top_level]
+  
   for_each = {
-    for comp in local.flatten_compartments : comp.name => comp
-    if comp.parent_name != "root" && can(oci_identity_compartment.top_level[comp.parent_name].id)
+    for idx, comp in local.flatten_compartments : comp.name => comp
+    if comp.parent_name != "root" && contains(keys(oci_identity_compartment.top_level), comp.parent_name)
   }
   
   compartment_id = oci_identity_compartment.top_level[each.value.parent_name].id
@@ -71,16 +73,17 @@ resource "oci_identity_compartment" "second_level" {
   
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
-  
-  # Adding dependency to ensure proper creation order
-  depends_on = [oci_identity_compartment.top_level]
 }
 
 # Create third-level compartments
 resource "oci_identity_compartment" "third_level" {
+  depends_on = [oci_identity_compartment.second_level]
+  
   for_each = {
-    for comp in local.flatten_compartments : comp.name => comp
-    if comp.parent_name != "root" && !can(oci_identity_compartment.top_level[comp.parent_name].id) && can(oci_identity_compartment.second_level[comp.parent_name].id)
+    for idx, comp in local.flatten_compartments : comp.name => comp
+    if comp.parent_name != "root" && 
+       !contains(keys(oci_identity_compartment.top_level), comp.parent_name) && 
+       contains(keys(oci_identity_compartment.second_level), comp.parent_name)
   }
   
   compartment_id = oci_identity_compartment.second_level[each.value.parent_name].id
@@ -91,9 +94,6 @@ resource "oci_identity_compartment" "third_level" {
   
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
-  
-  # Adding dependency to ensure proper creation order
-  depends_on = [oci_identity_compartment.second_level]
 }
 
 # Create a map of all compartment names to their OCIDs for reference in other modules

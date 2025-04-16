@@ -74,15 +74,15 @@ resource "oci_core_drg" "drg" {
 resource "oci_core_drg_attachment" "drg_attachment" {
   count = var.is_hub || var.is_spoke ? 1 : 0
   
-  drg_id       = var.is_hub ? oci_core_drg.drg[0].id : var.hub_drg_id
+  # For hub, use the created DRG. For spoke, use the provided hub DRG ID
+  drg_id       = var.is_hub ? oci_core_drg.drg[0].id : var.hub_drg_id != null ? var.hub_drg_id : ""
   vcn_id       = oci_core_vcn.vcn.id
   display_name = "${var.vcn_name}-drg-attachment"
-  
-  # Removed route_table_id to break cyclic dependency
   
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
 }
+
 
 # Create default route table for the VCN
 resource "oci_core_default_route_table" "default_route_table" {

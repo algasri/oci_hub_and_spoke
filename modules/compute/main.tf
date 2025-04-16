@@ -13,8 +13,13 @@ resource "oci_core_instance" "linux_jump_server" {
   display_name        = "${var.prefix}-linux-jump"
   shape               = var.linux_jump.shape
   
+  
   create_vnic_details {
-    subnet_id        = var.subnet_ids["mgmt"]
+    subnet_id        = lookup(var.subnet_ids, "mgmt", 
+                       lookup(var.subnet_ids, "${var.prefix}-mgmt", 
+                       lookup(var.subnet_ids, "management", 
+                       lookup(var.subnet_ids, "${var.prefix}-management", 
+                       values(var.subnet_ids)[0]))))
     display_name     = "${var.prefix}-linux-jump-vnic"
     assign_public_ip = var.assign_public_ip
     hostname_label   = "${var.prefix}-linux-jump"
@@ -43,7 +48,11 @@ resource "oci_core_instance" "windows_jump_server" {
   shape               = var.windows_jump.shape
   
   create_vnic_details {
-    subnet_id        = var.subnet_ids["mgmt"]
+    subnet_id        = lookup(var.subnet_ids, "mgmt", 
+                       lookup(var.subnet_ids, "${var.prefix}-mgmt", 
+                       lookup(var.subnet_ids, "management", 
+                       lookup(var.subnet_ids, "${var.prefix}-management", 
+                       values(var.subnet_ids)[0]))))
     display_name     = "${var.prefix}-windows-jump-vnic"
     assign_public_ip = var.assign_public_ip
     hostname_label   = "${var.prefix}-windows-jump"
