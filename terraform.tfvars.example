@@ -1,0 +1,37 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and update with your values
+
+# OCI Authentication
+tenancy_ocid     = "ocid1.tenancy.oc1..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+user_ocid        = "ocid1.user.oc1..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+
+# Root compartment ID (typically the tenancy OCID)
+compartment_id   = "ocid1.tenancy.oc1..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Path to YAML configuration file
+config_file_path = "input.yaml"
+
+# SSH public key for instance access
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..."
+
+# Image OCIDs (Optional - these can be overridden in the YAML file)
+# These are Oracle Linux 8 and Windows Server 2019 images in us-ashburn-1
+linux_image_id   = "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
+windows_image_id = "ocid1.image.oc1.iad.aaaaaaaawufnve5jxze4xf7orejupw5iq3pms6cuadzjc7klojix6vmk42va"
+
+# Default VM shape
+vm_shape = "VM.Standard2.1"
+
+# Tags
+freeform_tags = {
+  "project"     = "hub-spoke-architecture"
+  "environment" = "all"
+  "deployed-by" = "terraform"
+}
+
+# defined_tags = {
+#   "Operations.CostCenter" = "42"
+# }
