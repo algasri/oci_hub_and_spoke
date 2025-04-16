@@ -4,9 +4,14 @@
  * This module creates security lists, network security groups, and related security resources.
  */
 
+# Get VCN details to access default security list ID
+data "oci_core_vcn" "vcn" {
+  vcn_id = var.vcn_id
+}
+
 # Create default security list for the VCN
 resource "oci_core_default_security_list" "default_security_list" {
-  manage_default_resource_id = var.default_security_list_id
+  manage_default_resource_id = data.oci_core_vcn.vcn.default_security_list_id
   display_name               = "${var.vcn_name}-default-sl"
   
   # Allow all outbound traffic
@@ -48,7 +53,7 @@ resource "oci_core_default_security_list" "default_security_list" {
 resource "oci_core_security_list" "security_lists" {
   for_each = {
     for subnet in var.subnets : subnet.name => subnet
-    if subnet.security_list_rules != null
+    if lookup(subnet, "security_list_rules", null) != null
   }
   
   compartment_id = var.compartment_id
@@ -65,17 +70,17 @@ resource "oci_core_security_list" "security_lists" {
   # Create ingress rules based on the security_list_rules configuration
   dynamic "ingress_security_rules" {
     for_each = [
-      for rule in each.value.security_list_rules :
-      rule if rule.type == "ingress"
+      for rule in lookup(each.value, "security_list_rules", []) :
+      rule if lookup(rule, "type", "") == "ingress"
     ]
     
     content {
-      protocol    = ingress_security_rules.value.protocol == "all" ? "all" : ingress_security_rules.value.protocol == "tcp" ? "6" : ingress_security_rules.value.protocol == "udp" ? "17" : ingress_security_rules.value.protocol == "icmp" ? "1" : ingress_security_rules.value.protocol
-      source      = ingress_security_rules.value.source_cidr
-      description = ingress_security_rules.value.description
+      protocol    = ingress_security_rules.value.protocol == "all" ? "all" : ingress_security_rules.value.protocol == "tcp" ? "6" : ingress_security_rules.value.protocol == "udp" ? "17" : ingress_security_rules.value.protocol == "icmp" ? "1" :  ingress_security_rules.value.protocol
+      source      = lookup(ingress_security_rules.value, "source_cidr", "0.0.0.0/0")
+      description = lookup(ingress_security_rules.value, "description", "Ingress rule")
       
       dynamic "tcp_options" {
-        for_each = ingress_security_rules.value.protocol == "tcp" && ingress_security_rules.value.port != null ? [1] : []
+        for_each = ingress_security_rules.value.protocol == "tcp" && lookup(ingress_security_rules.value, "port", null) != null ? [1] : []
         content {
           min = ingress_security_rules.value.port
           max = ingress_security_rules.value.port
@@ -83,7 +88,7 @@ resource "oci_core_security_list" "security_lists" {
       }
       
       dynamic "udp_options" {
-        for_each = ingress_security_rules.value.protocol == "udp" && ingress_security_rules.value.port != null ? [1] : []
+        for_each = ingress_security_rules.value.protocol == "udp" && lookup(ingress_security_rules.value, "port", null) != null ? [1] : []
         content {
           min = ingress_security_rules.value.port
           max = ingress_security_rules.value.port
@@ -95,17 +100,17 @@ resource "oci_core_security_list" "security_lists" {
   # Create additional egress rules based on the security_list_rules configuration
   dynamic "egress_security_rules" {
     for_each = [
-      for rule in each.value.security_list_rules :
-      rule if rule.type == "egress"
+      for rule in lookup(each.value, "security_list_rules", []) :
+      rule if lookup(rule, "type", "") == "egress"
     ]
     
     content {
       protocol         = egress_security_rules.value.protocol == "all" ? "all" : egress_security_rules.value.protocol == "tcp" ? "6" : egress_security_rules.value.protocol == "udp" ? "17" : egress_security_rules.value.protocol == "icmp" ? "1" : egress_security_rules.value.protocol
-      destination      = egress_security_rules.value.destination_cidr
-      description      = egress_security_rules.value.description
+      destination      = lookup(egress_security_rules.value, "destination_cidr", "0.0.0.0/0")
+      description      = lookup(egress_security_rules.value, "description", "Egress rule")
       
       dynamic "tcp_options" {
-        for_each = egress_security_rules.value.protocol == "tcp" && egress_security_rules.value.port != null ? [1] : []
+        for_each = egress_security_rules.value.protocol == "tcp" && lookup(egress_security_rules.value, "port", null) != null ? [1] : []
         content {
           min = egress_security_rules.value.port
           max = egress_security_rules.value.port
@@ -113,7 +118,7 @@ resource "oci_core_security_list" "security_lists" {
       }
       
       dynamic "udp_options" {
-        for_each = egress_security_rules.value.protocol == "udp" && egress_security_rules.value.port != null ? [1] : []
+        for_each = egress_security_rules.value.protocol == "udp" && lookup(egress_security_rules.value, "port", null) != null ? [1] : []
         content {
           min = egress_security_rules.value.port
           max = egress_security_rules.value.port

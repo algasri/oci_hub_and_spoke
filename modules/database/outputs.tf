@@ -17,9 +17,9 @@ output "database_id" {
   value       = oci_database_db_system.db_system.db_home[0].database[0].id
 }
 
-output "db_node_ids" {
-  description = "OCIDs of the database nodes"
-  value       = oci_database_db_system.db_system.db_node_ids
+output "db_node_id" {
+  description = "OCID of the primary database system"
+  value       = oci_database_db_system.db_system.id
 }
 
 output "db_details" {
@@ -39,9 +39,9 @@ output "db_details" {
   sensitive   = true
 }
 
-output "connection_strings" {
-  description = "Connection strings for the database"
-  value       = oci_database_db_system.db_system.connection_strings
+output "connection_string" {
+  description = "Connection string for the database"
+  value       = "${oci_database_db_system.db_system.hostname}.${oci_database_db_system.db_system.domain}:1521/${oci_database_db_system.db_system.db_home[0].database[0].db_unique_name}"
   sensitive   = true
 }
 

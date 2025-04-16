@@ -63,17 +63,16 @@ variable "ssh_public_key" {
   type        = string
 }
 
-variable "tags" {
+variable "freeform_tags" {
+  description = "Freeform tags to apply to all resources"
+  type        = map(string)
+  default     = {
+    "project" = "hub-spoke-architecture"
+  }
+}
+
+variable "defined_tags" {
   description = "Defined tags to apply to all resources"
   type        = map(string)
   default     = {}
 }
-
-variable "freeform_tags" {
-  description = "Freeform tags to apply to all resources"
-  type        = map(string)
-  default = {
-    "project" = "hub-spoke-architecture"
-  }
-}
-  

@@ -1,4 +1,4 @@
- /**
+/**
  * # Variables for Security Module
  */
 
@@ -19,11 +19,6 @@ variable "vcn_name" {
 
 variable "vcn_cidr" {
   description = "CIDR block of the VCN"
-  type        = string
-}
-
-variable "default_security_list_id" {
-  description = "OCID of the default security list"
   type        = string
 }
 

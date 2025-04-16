@@ -32,6 +32,9 @@ module "compartments" {
   source = "./modules/compartments"
   
   compartments = local.compartments
+  tenancy_ocid = var.tenancy_ocid
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
 }
 
 # Create hub VCN and associated resources
@@ -46,13 +49,18 @@ module "hub_network" {
   depends_on = [module.compartments]
 }
 
-# Create hub security lists
+
 module "hub_security" {
   source = "./modules/security"
   
   compartment_id = module.compartments.compartment_ids[local.hub_vcn.compartment]
   vcn_id = module.hub_network.vcn_id
+  vcn_name = local.hub_vcn.name
+  vcn_cidr = local.hub_vcn.cidr
   subnets = local.hub_vcn.subnets
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
   
   depends_on = [module.hub_network]
 }
@@ -104,9 +112,12 @@ module "spoke_security" {
   
   compartment_id = module.compartments.compartment_ids[local.spokes_vcn[count.index].compartment]
   vcn_id = module.spoke_networks[count.index].vcn_id
-  vcn_name = module.spoke_networks[count.index].vcn_name
-  vcn_cidr = module.spoke_networks[count.index].vcn_cidr
+  vcn_name = local.spokes_vcn[count.index].name
+  vcn_cidr = local.spokes_vcn[count.index].cidr
   subnets = local.spokes_vcn[count.index].subnets
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
   
   depends_on = [module.spoke_networks]
 }

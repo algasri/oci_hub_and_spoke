@@ -77,6 +77,11 @@ resource "oci_core_drg_attachment" "drg_attachment" {
   drg_id       = var.is_hub ? oci_core_drg.drg[0].id : var.hub_drg_id
   vcn_id       = oci_core_vcn.vcn.id
   display_name = "${var.vcn_name}-drg-attachment"
+  
+  # Removed route_table_id to break cyclic dependency
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
 }
 
 # Create default route table for the VCN
@@ -115,14 +120,23 @@ resource "oci_core_route_table" "private_route_table" {
     network_entity_id = oci_core_service_gateway.service_gateway.id
   }
   
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
+}
+
+# Create a separate route table for DRG routes to avoid circular dependencies
+resource "oci_core_route_table" "drg_route_table" {
+  count = var.is_spoke ? 1 : 0
+  
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.vcn.id
+  display_name   = "${var.vcn_name}-drg-rt"
+  
   # For spoke VCNs, route traffic to other spokes through the hub DRG
-  dynamic "route_rules" {
-    for_each = var.is_spoke ? [1] : []
-    content {
-      destination       = "10.0.0.0/8" # This covers all VCNs in our design
-      destination_type  = "CIDR_BLOCK"
-      network_entity_id = oci_core_drg_attachment.drg_attachment[0].id
-    }
+  route_rules {
+    destination       = "10.0.0.0/8" # This covers all VCNs in our design
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_drg_attachment.drg_attachment[0].id
   }
   
   freeform_tags = var.freeform_tags
@@ -146,7 +160,8 @@ resource "oci_core_subnet" "subnets" {
   prohibit_public_ip_on_vnic = ! (contains(["public", "hub-access"], lower(each.value.name)) || contains(["hub-public", "hub-access"], each.value.name))
   
   # Use the appropriate route table
-  route_table_id = contains(["public", "hub-access"], lower(each.value.name)) ||  contains(["hub-public", "hub-access"], each.value.name) ? oci_core_default_route_table.default_route_table.id : oci_core_route_table.private_route_table.id
+  # For spoke VCNs, use the DRG route table for private subnets
+  route_table_id = contains(["public", "hub-access"], lower(each.value.name)) || contains(["hub-public", "hub-access"], each.value.name) ? oci_core_default_route_table.default_route_table.id : var.is_spoke ? oci_core_route_table.drg_route_table[0].id : oci_core_route_table.private_route_table.id
   
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
@@ -185,17 +200,8 @@ resource "oci_core_drg_route_table" "hub_drg_route_table" {
   import_drg_route_distribution_id = oci_core_drg_route_distribution.hub_drg_route_distribution[0].id
 }
 
-# Update the DRG attachment with the route table
-resource "oci_core_drg_attachment_management" "drg_attachment_management" {
-  count = var.is_hub ? 1 : 0
-  
-  drg_attachment_id = oci_core_drg_attachment.drg_attachment[0].id
-  display_name    = "${var.vcn_name}-drg-attachment-mgmt"
-  
-  network_details {
-    id   = oci_core_vcn.vcn.id
-    type = "VCN"
-    
-    route_table_id = oci_core_route_table.private_route_table.id
-  }
+# Break the circular dependency by removing the direct references
+# Instead, use local variables to refer to the network entities
+locals {
+  drg_attachment_id = var.is_hub || var.is_spoke ? oci_core_drg_attachment.drg_attachment[0].id : null
 }
