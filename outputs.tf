@@ -25,6 +25,30 @@ output "hub_instances" {
   sensitive   = true
 }
 
+output "spoke_instances" {
+  description = "Details of spoke compute instances"
+  value       = [for compute in module.spoke_compute : compute.instance_details]
+  sensitive   = true
+}
+
+output "jump_servers" {
+  description = "Details of jump servers across all environments"
+  value       = {
+    hub = {
+      for name, instance in module.hub_compute.instance_details :
+      name => instance if instance.is_jump_server
+    },
+    spokes = [
+      for idx, compute in module.spoke_compute : {
+        spoke_name = local.spokes_vcn[idx].name,
+        linux_jump_servers = compute.linux_jump_details,
+        windows_jump_servers = compute.windows_jump_details
+      }
+    ]
+  }
+  sensitive   = true
+}
+
 output "spoke_vcn_ids" {
   description = "OCIDs of the spoke VCNs"
   value       = [for network in module.spoke_networks : network.vcn_id]
@@ -35,20 +59,7 @@ output "spoke_subnet_ids" {
   value       = [for network in module.spoke_networks : network.subnet_ids]
 }
 
-output "spoke_instances" {
-  description = "Details of spoke compute instances"
-  value       = [for compute in module.spoke_compute : compute.instance_details]
-  sensitive   = true
-}
 
-output "jump_servers" {
-  description = "Details of jump servers"
-  value       = [for compute in module.spoke_compute : {
-    linux = compute.linux_jump_details
-    windows = compute.windows_jump_details
-  }]
-  sensitive   = true
-}
 
 output "loadbalancers" {
   description = "Details of load balancers"

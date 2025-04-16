@@ -2,34 +2,53 @@
  * # Outputs for Compute Module
  */
 
+output "instance_details" {
+  description = "Details of all created compute instances"
+  value = {
+    for name, instance in oci_core_instance.instances : name => {
+      id           = instance.id
+      display_name = instance.display_name
+      state        = instance.state
+      shape        = instance.shape
+      private_ip   = instance.private_ip
+      public_ip    = instance.public_ip
+      is_jump_server = lookup(var.instances[name], "is_jump_server", false)
+    }
+  }
+}
+
 output "linux_jump_details" {
-  description = "Details of the Linux jump server"
-  value = var.linux_jump != null ? {
-    id           = oci_core_instance.linux_jump_server[0].id
-    display_name = oci_core_instance.linux_jump_server[0].display_name
-    state        = oci_core_instance.linux_jump_server[0].state
-    shape        = oci_core_instance.linux_jump_server[0].shape
-    private_ip   = oci_core_instance.linux_jump_server[0].private_ip
-    public_ip    = oci_core_instance.linux_jump_server[0].public_ip
-  } : null
+  description = "Details of the Linux jump servers"
+  value = {
+    for name, instance in local.linux_jump_servers : name => {
+      id           = instance.id
+      display_name = instance.display_name
+      state        = instance.state
+      shape        = instance.shape
+      private_ip   = instance.private_ip
+      public_ip    = instance.public_ip
+    }
+  }
 }
 
 output "windows_jump_details" {
-  description = "Details of the Windows jump server"
-  value = var.windows_jump != null ? {
-    id           = oci_core_instance.windows_jump_server[0].id
-    display_name = oci_core_instance.windows_jump_server[0].display_name
-    state        = oci_core_instance.windows_jump_server[0].state
-    shape        = oci_core_instance.windows_jump_server[0].shape
-    private_ip   = oci_core_instance.windows_jump_server[0].private_ip
-    public_ip    = oci_core_instance.windows_jump_server[0].public_ip
-  } : null
+  description = "Details of the Windows jump servers"
+  value = {
+    for name, instance in local.windows_jump_servers : name => {
+      id           = instance.id
+      display_name = instance.display_name
+      state        = instance.state
+      shape        = instance.shape
+      private_ip   = instance.private_ip
+      public_ip    = instance.public_ip
+    }
+  }
 }
 
-output "instance_details" {
-  description = "Details of created compute instances"
+output "regular_instance_details" {
+  description = "Details of non-jump server instances"
   value = {
-    for name, instance in oci_core_instance.instances : name => {
+    for name, instance in local.regular_instances : name => {
       id           = instance.id
       display_name = instance.display_name
       state        = instance.state

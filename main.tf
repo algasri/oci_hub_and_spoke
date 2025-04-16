@@ -78,11 +78,24 @@ module "hub_compute" {
   compartment_id = module.compartments.compartment_ids[local.hub_vcn.compartment]
   vcn_id = module.hub_network.vcn_id
   subnet_ids = module.hub_network.subnet_ids
-  instances = local.hub_vcn.instances
+  prefix = local.hub_vcn.name
+  
+  # Process instances and map compartment names to IDs
+  instances = [
+    for instance in local.hub_vcn.instances : merge(
+      instance,
+      {
+        compartment_id = lookup(module.compartments.compartment_ids, instance.compartment, module.compartments.compartment_ids[local.hub_vcn.compartment])
+      }
+    )
+  ]
+  
+  ssh_public_key = var.ssh_public_key
+  freeform_tags = var.freeform_tags
+  defined_tags = var.defined_tags
   
   depends_on = [module.hub_security]
 }
-
 # Create hub firewall
 module "hub_firewall" {
   source = "./modules/firewall"
@@ -133,6 +146,7 @@ module "spoke_security" {
   depends_on = [module.spoke_networks]
 }
 
+
 # Create spoke compute instances (including jump servers)
 module "spoke_compute" {
   source = "./modules/compute"
@@ -141,13 +155,21 @@ module "spoke_compute" {
   compartment_id = module.compartments.compartment_ids[local.spokes_vcn[count.index].compartment]
   vcn_id = module.spoke_networks[count.index].vcn_id
   subnet_ids = module.spoke_networks[count.index].subnet_ids
+  prefix = local.spokes_vcn[count.index].name
   
-  # Jump servers
-  linux_jump = local.spokes_vcn[count.index].jump_servers.linux
-  windows_jump = local.spokes_vcn[count.index].jump_servers.windows
+  # Process instances and map compartment names to IDs
+  instances = [
+    for instance in lookup(local.spokes_vcn[count.index], "instances", []) : merge(
+      instance,
+      {
+        compartment_id = lookup(module.compartments.compartment_ids, instance.compartment, module.compartments.compartment_ids[local.spokes_vcn[count.index].compartment])
+      }
+    )
+  ]
   
-  # Custom instances
-  instances = lookup(local.spokes_vcn[count.index], "instances", [])
+  ssh_public_key = var.ssh_public_key
+  freeform_tags = var.freeform_tags
+  defined_tags = var.defined_tags
   
   depends_on = [module.spoke_security]
 }

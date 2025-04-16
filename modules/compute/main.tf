@@ -4,86 +4,31 @@
  * This module creates compute instances including jump servers.
  */
 
-# Create Linux jump server
-resource "oci_core_instance" "linux_jump_server" {
-  count = var.linux_jump != null ? 1 : 0
-  
-  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  compartment_id      = var.compartment_id
-  display_name        = "${var.prefix}-linux-jump"
-  shape               = var.linux_jump.shape
-  
-  
-  create_vnic_details {
-    subnet_id        = lookup(var.subnet_ids, "mgmt", 
-                       lookup(var.subnet_ids, "${var.prefix}-mgmt", 
-                       lookup(var.subnet_ids, "management", 
-                       lookup(var.subnet_ids, "${var.prefix}-management", 
-                       values(var.subnet_ids)[0]))))
-    display_name     = "${var.prefix}-linux-jump-vnic"
-    assign_public_ip = var.assign_public_ip
-    hostname_label   = "${var.prefix}-linux-jump"
-  }
-  
-  source_details {
-    source_type = "image"
-    source_id   = var.linux_jump.image_ocid
-  }
-  
-  metadata = {
-    ssh_authorized_keys = var.ssh_public_key
-  }
-  
-  freeform_tags = var.freeform_tags
-  defined_tags  = var.defined_tags
+# Get availability domains
+data "oci_identity_availability_domains" "ads" {
+  compartment_id = var.compartment_id
 }
 
-# Create Windows jump server
-resource "oci_core_instance" "windows_jump_server" {
-  count = var.windows_jump != null ? 1 : 0
-  
+# Get fault domains
+data "oci_identity_fault_domains" "fds" {
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id      = var.compartment_id
-  display_name        = "${var.prefix}-windows-jump"
-  shape               = var.windows_jump.shape
-  
-  create_vnic_details {
-    subnet_id        = lookup(var.subnet_ids, "mgmt", 
-                       lookup(var.subnet_ids, "${var.prefix}-mgmt", 
-                       lookup(var.subnet_ids, "management", 
-                       lookup(var.subnet_ids, "${var.prefix}-management", 
-                       values(var.subnet_ids)[0]))))
-    display_name     = "${var.prefix}-windows-jump-vnic"
-    assign_public_ip = var.assign_public_ip
-    hostname_label   = "${var.prefix}-windows-jump"
-  }
-  
-  source_details {
-    source_type = "image"
-    source_id   = var.windows_jump.image_ocid
-  }
-  
-  metadata = {
-    # Windows-specific initialization can be added here
-  }
-  
-  freeform_tags = var.freeform_tags
-  defined_tags  = var.defined_tags
 }
 
-# Create custom instances
+# Create compute instances (including jump servers)
 resource "oci_core_instance" "instances" {
   for_each = {
     for instance in var.instances : instance.name => instance
   }
   
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  compartment_id      = var.compartment_id
+  # Use the provided compartment_id or the instance-specific one
+  compartment_id      = lookup(each.value, "compartment_id", var.compartment_id)
   display_name        = each.value.name
   shape               = each.value.shape
   
   create_vnic_details {
-    subnet_id        = var.subnet_ids[each.value.subnet]
+    subnet_id        = lookup(var.subnet_ids, each.value.subnet, null)
     display_name     = "${each.value.name}-vnic"
     assign_public_ip = contains(["public", "hub-access"], lower(each.value.subnet)) ? true : false
     hostname_label   = replace(each.value.name, "-", "")
@@ -98,17 +43,36 @@ resource "oci_core_instance" "instances" {
     ssh_authorized_keys = var.ssh_public_key
   } : {}
   
-  freeform_tags = var.freeform_tags
-  defined_tags  = var.defined_tags
+  # Tag for jump servers
+  defined_tags = merge(
+    var.defined_tags,
+    lookup(each.value, "is_jump_server", false) ? {"Server.Type" = "JumpServer"} : {}
+  )
+  freeform_tags = merge(
+    var.freeform_tags,
+    lookup(each.value, "is_jump_server", false) ? {"is_jump_server" = "true"} : {}
+  )
 }
 
-# Get availability domains
-data "oci_identity_availability_domains" "ads" {
-  compartment_id = var.compartment_id
-}
-
-# Get fault domains
-data "oci_identity_fault_domains" "fds" {
-  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  compartment_id      = var.compartment_id
+# Output maps for quick reference
+locals {
+  jump_servers = {
+    for name, instance in oci_core_instance.instances :
+    name => instance if lookup(var.instances[name], "is_jump_server", false)
+  }
+  
+  linux_jump_servers = {
+    for name, instance in local.jump_servers :
+    name => instance if var.instances[name].os == "linux"
+  }
+  
+  windows_jump_servers = {
+    for name, instance in local.jump_servers :
+    name => instance if var.instances[name].os == "windows"
+  }
+  
+  regular_instances = {
+    for name, instance in oci_core_instance.instances :
+    name => instance if !lookup(var.instances[name], "is_jump_server", false)
+  }
 }

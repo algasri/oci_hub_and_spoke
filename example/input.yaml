@@ -5,49 +5,64 @@ compartments:
     sub_compartments:
       - name: "shared_nprd"
         description: "Shared non-production resources compartment"
+        sub_compartments: []
       - name: "dev"
         description: "Development resources compartment"
         sub_compartments:
           - name: "dev-mgt"
             description: "Development management resources compartment"
+            sub_compartments: []
           - name: "dev-web"
             description: "Development web resources compartment"
+            sub_compartments: []
           - name: "dev-app"
             description: "Development application resources compartment"
+            sub_compartments: []
           - name: "dev-db"
             description: "Development database resources compartment"
+            sub_compartments: []
       - name: "test"
         description: "Test resources compartment"
         sub_compartments:
           - name: "test-mgt"
             description: "Test management resources compartment"
+            sub_compartments: []
           - name: "test-web"
             description: "Test web resources compartment"
+            sub_compartments: []
           - name: "test-app"
             description: "Test application resources compartment"
+            sub_compartments: []
           - name: "test-db"
             description: "Test database resources compartment"
+            sub_compartments: []
   - name: "production"
     description: "Production compartment"
     sub_compartments:
       - name: "shared_prod"
         description: "Shared production resources compartment"
+        sub_compartments: []
       - name: "prod"
         description: "Production resources compartment"
         sub_compartments:
           - name: "prod-mgt"
             description: "Production management resources compartment"
+            sub_compartments: []
           - name: "prod-web"
             description: "Production web resources compartment"
+            sub_compartments: []
           - name: "prod-app"
             description: "Production application resources compartment"
+            sub_compartments: []
           - name: "prod-db"
             description: "Production database resources compartment"
+            sub_compartments: []
   - name: "network"
     description: "Network compartment"
     sub_compartments:
       - name: "hub"
         description: "Hub network resources compartment"
+        sub_compartments: []
 
 hub_vcn:
   name: "hub-vcn"
@@ -178,13 +193,36 @@ spokes_vcn:
             protocol: "all"
             destination_cidr: "0.0.0.0/0"
             description: "Allow all egress"
-    jump_servers:
-      linux:
+    # Updated: Jump server definition is now included in instances
+    instances:
+      # Jump servers
+      - name: "dev-linux-jump"
+        os: "linux"
         shape: "VM.Standard2.1"
         image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-      windows:
+        subnet: "dev-mgmt"
+        compartment: "dev-mgt"
+        is_jump_server: true
+      - name: "dev-win-jump"
+        os: "windows"
         shape: "VM.Standard2.1"
         image_ocid: "ocid1.image.oc1.iad.aaaaaaaawufnve5jxze4xf7orejupw5iq3pms6cuadzjc7klojix6vmk42va"
+        subnet: "dev-mgmt"
+        compartment: "dev-mgt"
+        is_jump_server: true
+      # Regular instances
+      - name: "dev-app-server1"
+        os: "linux"
+        shape: "VM.Standard2.1"
+        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
+        subnet: "dev-app"
+        compartment: "dev-app"
+      - name: "dev-web-server1"
+        os: "linux"
+        shape: "VM.Standard2.1"
+        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
+        subnet: "dev-web"
+        compartment: "dev-web"
     dbcs:
       shape: "VM.Standard2.2"
       db_version: "19c"
@@ -205,19 +243,6 @@ spokes_vcn:
         min_shape: 10
         max_shape: 100
         backend_type: "app"
-    instances:
-      - name: "dev-app-server1"
-        os: "linux"
-        shape: "VM.Standard2.1"
-        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-        subnet: "dev-app"
-        compartment: "dev-app"
-      - name: "dev-web-server1"
-        os: "linux"
-        shape: "VM.Standard2.1"
-        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-        subnet: "dev-web"
-        compartment: "dev-web"
 
   - name: "test-spoke"
     cidr: "10.2.0.0/16"
@@ -281,13 +306,36 @@ spokes_vcn:
             protocol: "all"
             destination_cidr: "0.0.0.0/0"
             description: "Allow all egress"
-    jump_servers:
-      linux:
+    # Updated: Jump server definition is now included in instances
+    instances:
+      # Jump servers
+      - name: "test-linux-jump"
+        os: "linux"
         shape: "VM.Standard2.1"
         image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-      windows:
+        subnet: "test-mgmt" 
+        compartment: "test-mgt"
+        is_jump_server: true
+      - name: "test-win-jump"
+        os: "windows"
         shape: "VM.Standard2.1"
         image_ocid: "ocid1.image.oc1.iad.aaaaaaaawufnve5jxze4xf7orejupw5iq3pms6cuadzjc7klojix6vmk42va"
+        subnet: "test-mgmt"
+        compartment: "test-mgt"
+        is_jump_server: true
+      # Regular instances
+      - name: "test-app-server1"
+        os: "linux"
+        shape: "VM.Standard2.1"
+        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
+        subnet: "test-app"
+        compartment: "test-app"
+      - name: "test-web-server1"
+        os: "linux"
+        shape: "VM.Standard2.1"
+        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
+        subnet: "test-web"
+        compartment: "test-web"
     dbcs:
       shape: "VM.Standard2.2"
       db_version: "19c"
@@ -308,19 +356,6 @@ spokes_vcn:
         min_shape: 10
         max_shape: 100
         backend_type: "app"
-    instances:
-      - name: "test-app-server1"
-        os: "linux"
-        shape: "VM.Standard2.1"
-        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-        subnet: "test-app"
-        compartment: "test-app"
-      - name: "test-web-server1"
-        os: "linux"
-        shape: "VM.Standard2.1"
-        image_ocid: "ocid1.image.oc1.iad.aaaaaaaavzjw65d6pqbvgovw3qs4vyb4m3qmzbqafwky6ys44cabgcx63c3a"
-        subnet: "test-web"
-        compartment: "test-web"
 
 groups:
   - name: "network-admins"

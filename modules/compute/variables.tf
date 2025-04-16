@@ -35,33 +35,17 @@ variable "ssh_public_key" {
   default     = ""
 }
 
-variable "linux_jump" {
-  description = "Configuration for Linux jump server"
-  type = object({
-    shape      = string
-    image_ocid = string
-  })
-  default = null
-}
-
-variable "windows_jump" {
-  description = "Configuration for Windows jump server"
-  type = object({
-    shape      = string
-    image_ocid = string
-  })
-  default = null
-}
-
 variable "instances" {
   description = "List of instances to create"
   type = list(object({
-    name       = string
-    os         = string
-    shape      = string
-    image_ocid = string
-    subnet     = string
-    compartment = optional(string)
+    name           = string
+    os             = string
+    shape          = string
+    image_ocid     = string
+    subnet         = string
+    compartment    = optional(string)
+    compartment_id = optional(string)
+    is_jump_server = optional(bool, false)
   }))
   default = []
 }
